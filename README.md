@@ -702,10 +702,10 @@ Possible future improvements:
 
 ## Project stats
 
-![GitHub stars](https://img.shields.io/github/stars/TyranR/zabbix-dune-hd-monitoring?style=social)
-![GitHub forks](https://img.shields.io/github/forks/TyranR/zabbix-dune-hd-monitoring?style=social)
-![GitHub issues](https://img.shields.io/github/issues/TyranR/zabbix-dune-hd-monitoring)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/TyranR/zabbix-dune-hd-monitoring)
+![GitHub stars](https://img.shields.io/github/stars/TyranR/zabbix-dune-monitoring?style=social)
+![GitHub forks](https://img.shields.io/github/forks/TyranR/zabbix-dune-monitoring?style=social)
+![GitHub issues](https://img.shields.io/github/issues/TyranR/zabbix-hd-monitoring)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/TyranR/zabbix-dune-monitoring)
 
 ---
 
