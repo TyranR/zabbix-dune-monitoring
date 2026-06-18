@@ -440,6 +440,7 @@ zabbix_export:
               parameters:
                 - $.playback_caption
               error_handler: DISCARD_VALUE
+            - type: DISCARD_UNCHANGED
           master_item:
             key: dune.status.raw
           tags:
