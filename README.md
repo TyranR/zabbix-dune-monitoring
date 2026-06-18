@@ -1,7 +1,6 @@
 # Zabbix Dune HD HTTP Monitoring
 
 ![Zabbix](https://img.shields.io/badge/Zabbix-7.4-red)
-![Template](https://img.shields.io/badge/template-v1.1-purple)
 ![HTTP](https://img.shields.io/badge/protocol-HTTP%20API-blue)
 ![Dune HD](https://img.shields.io/badge/device-Dune%20HD-orange)
 ![Tested](https://img.shields.io/badge/tested%20with-Pro%20One%208K%20Plus-lightgrey)
@@ -16,16 +15,6 @@ The template was built and tested against **Dune HD Pro One 8K Plus** using the 
 ```text
 /cgi-bin/do?cmd=status&result_syntax=json
 ```
-
-Current template statistics:
-
-```text
-Template version: 1.1
-Items: 43
-Graphs: 7
-Dashboard widgets: 22
-```
-
 ---
 
 ## What this solves
