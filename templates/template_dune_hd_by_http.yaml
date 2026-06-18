@@ -1,0 +1,1066 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 7df96b18c2304f27a7fdc291db42a2aa
+      name: Templates/Applications
+  templates:
+    - uuid: 4ac59b33b8f34d53b9a2cd7ca7c891a3
+      template: 'Dune HD by HTTP'
+      name: 'Dune HD by HTTP'
+      description: |
+        Basic Zabbix template for monitoring Dune HD media players via HTTP IP Control API.
+        
+        Tested against Dune HD Pro One 8K Plus response from:
+        /cgi-bin/do?cmd=status&result_syntax=json
+        
+        The template uses one HTTP agent master item and dependent items with JSONPath preprocessing.
+        
+        Required host configuration:
+        - Set the host interface/IP to the Dune media player IP address.
+        - Default API port is 80.
+        - For Google-certified ATV models, set {$DUNE.API.PORT} to 11080.
+        
+        The template also includes numeric helper items for graphs:
+        - dune.player_state.code maps textual player_state to numeric values.
+        - dune.playback_progress_pct calculates playback progress from position and duration.
+      vendor:
+        name: TyranR
+        version: '1.0'
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: 82b79ad2df05499e8d75f1ea5f765cee
+          name: 'Dune: Android UI active'
+          type: DEPENDENT
+          key: dune.android_ui_active
+          history: 7d
+          description: |
+            Shows whether the Android/Dune UI shell is active. 
+            0 may be normal during native media playback. 
+            This item should not be used as an availability check.
+          valuemap:
+            name: 'Dune Android UI state'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.android_app_active
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: application
+        - uuid: 9d5f9f6357e84e739cdb660185ab1d18
+          name: 'Dune: App version'
+          type: DEPENDENT
+          key: dune.app_version
+          history: 7d
+          value_type: CHAR
+          description: 'Dune application version.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.app_version
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: application
+          triggers:
+            - uuid: 5d10c3ade17640d8a755ed5217c9cce9
+              expression: 'last(/Dune HD by HTTP/dune.app_version,#1)<>last(/Dune HD by HTTP/dune.app_version,#2) and length(last(/Dune HD by HTTP/dune.app_version))>0'
+              name: 'Dune: App version has changed'
+              event_name: 'Dune: App version has changed (new version: {ITEM.VALUE})'
+              priority: INFO
+              description: 'The Dune application version has changed. Acknowledge to close the problem manually.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+        - uuid: 447642f0a08c448c94cd0768a9b6df35
+          name: 'Dune: Commercial serial number'
+          type: DEPENDENT
+          key: dune.commercial_serial_number
+          history: 7d
+          value_type: CHAR
+          description: 'Dune commercial serial number.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.commercial_serial_number
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: e334ff40e0a5422a8b66d9b8860ace53
+          name: 'Dune: Firmware version'
+          type: DEPENDENT
+          key: dune.firmware_version
+          history: 7d
+          value_type: CHAR
+          description: 'Dune firmware version.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.firmware_version
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: firmware
+          triggers:
+            - uuid: 1b730b3e463846d1837ee6f36741717d
+              expression: 'last(/Dune HD by HTTP/dune.firmware_version,#1)<>last(/Dune HD by HTTP/dune.firmware_version,#2) and length(last(/Dune HD by HTTP/dune.firmware_version))>0'
+              name: 'Dune: Firmware version has changed'
+              event_name: 'Dune: Firmware version has changed (new version: {ITEM.VALUE})'
+              priority: INFO
+              description: 'The Dune firmware version has changed. Acknowledge to close the problem manually.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+        - uuid: 21510268f5644d5c94045852fb156405
+          name: 'Dune: Playback duration'
+          type: DEPENDENT
+          key: dune.playback_duration
+          history: 7d
+          value_type: FLOAT
+          units: s
+          description: 'Current media duration in seconds. If unavailable, the item returns -1.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_duration
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+        - uuid: 7c41645631ae4a3eba695acd54e860c5
+          name: 'Dune: Playback DVD menu'
+          type: DEPENDENT
+          key: dune.playback_dvd_menu
+          history: 7d
+          description: 'DVD menu state. 1 means DVD menu is currently shown. If unavailable, the item returns 0.'
+          valuemap:
+            name: 'Dune flag'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_dvd_menu
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+        - uuid: 708a7c196d1a480e94dc647e58fe8953
+          name: 'Dune: Playback buffering'
+          type: DEPENDENT
+          key: dune.playback_is_buffering
+          history: 7d
+          description: 'Playback buffering state. 1 means buffering is in progress. If unavailable, the item returns 0.'
+          valuemap:
+            name: 'Dune flag'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_is_buffering
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+          triggers:
+            - uuid: 9b9ad5c5c330400f8f93f8a218c37b4f
+              expression: 'min(/Dune HD by HTTP/dune.playback_is_buffering,5m)=1'
+              name: 'Dune: Playback is buffering for too long'
+              priority: WARNING
+              description: 'Dune reports buffering state continuously for 5 minutes.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: performance
+        - uuid: 499dc158d0854b739ebfc068eb8cae1c
+          name: 'Dune: Playback mute'
+          type: DEPENDENT
+          key: dune.playback_mute
+          history: 7d
+          description: 'Dune mute state. 1 means muted, 0 means not muted.'
+          valuemap:
+            name: 'Dune flag'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_mute
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: audio
+        - uuid: 6671946405564399bf4bb724415a88e1
+          name: 'Dune: Playback position'
+          type: DEPENDENT
+          key: dune.playback_position
+          history: 7d
+          value_type: FLOAT
+          units: s
+          description: 'Current playback position in seconds. If unavailable, the item returns -1.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_position
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+        - uuid: 93c694f6380b452982a43f902e7cf29d
+          name: 'Dune: Playback progress'
+          type: DEPENDENT
+          key: dune.playback_progress_pct
+          history: 7d
+          value_type: FLOAT
+          units: '%'
+          description: 'Playback progress percentage calculated from playback_position and playback_duration. If unavailable, the item returns -1.'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  try {
+                      var data = JSON.parse(value);
+                      var position = Number(data.playback_position);
+                      var duration = Number(data.playback_duration);
+                  
+                      if (!isFinite(position) || !isFinite(duration) || duration <= 0 || position < 0) {
+                          return 0;
+                      }
+                  
+                      return Math.min(100, Math.max(0, position / duration * 100));
+                  }
+                  catch (e) {
+                      return 0;
+                  }
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+        - uuid: c5aa6e3f12c64d32b34f064664c08926
+          name: 'Dune: Playback speed'
+          type: DEPENDENT
+          key: dune.playback_speed
+          history: 7d
+          value_type: FLOAT
+          description: 'Current playback speed. Dune commonly uses 256 for normal playback and 0 for pause. If unavailable, the item returns -1.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_speed
+              error_handler: DISCARD_VALUE
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: playback
+        - uuid: 4a50ce6d5f994777a7ad4bb9354f4cb0
+          name: 'Dune: Playback volume'
+          type: DEPENDENT
+          key: dune.playback_volume
+          history: 7d
+          units: '%'
+          description: 'Current Dune playback volume level.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.playback_volume
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: audio
+        - uuid: b6b84932ef0d46b597c62a575a9ee43a
+          name: 'Dune: Player state'
+          type: DEPENDENT
+          key: dune.player_state
+          history: 7d
+          value_type: CHAR
+          description: 'Current Dune player state, for example: standby, navigator, file_playback, black_screen.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.player_state
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: player
+        - uuid: 4b18f08066274bd69dd2b4b1e37dae9c
+          name: 'Dune: Player state code'
+          type: DEPENDENT
+          key: dune.player_state.code
+          history: 7d
+          description: 'Numeric player state code for graphs and dashboards.'
+          valuemap:
+            name: 'Dune player state'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  try {
+                      var data = JSON.parse(value);
+                      switch (data.player_state) {
+                          case 'standby': return 1;
+                           case 'navigator': return 2;
+                          case 'file_playback': return 3;
+                          case 'dvd_playback': return  4;
+                          case 'bluray_playback': return 5;
+                          case 'black_screen': return 6;
+                          default: return  0;
+                      }
+                  }
+                  catch (e) {
+                      return 0;
+                  }
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: player
+        - uuid: 89db0a928b744c42ba7df2e53122d272
+          name: 'Dune: Product ID'
+          type: DEPENDENT
+          key: dune.product_id
+          history: 7d
+          value_type: CHAR
+          description: 'Dune product ID.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.product_id
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: 540bb05a72174690bbdb8011ea417003
+          name: 'Dune: Product name'
+          type: DEPENDENT
+          key: dune.product_name
+          history: 7d
+          value_type: CHAR
+          description: 'Dune product name.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.product_name
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: 1349fbd2a7374675802bc99c63de68ec
+          name: 'Dune: Protocol version'
+          type: DEPENDENT
+          key: dune.protocol_version
+          history: 7d
+          description: 'Dune IP Control protocol version.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.protocol_version
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: api
+        - uuid: eed39c71f1cc42c891c050112775ed26
+          name: 'Dune: Serial number'
+          type: DEPENDENT
+          key: dune.serial_number
+          history: 7d
+          value_type: CHAR
+          description: 'Dune serial number.'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.serial_number
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dune.status.raw
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: b4df8ebd7dd24c8fa68ad2e7944c373c
+          name: 'Dune: Status raw'
+          type: HTTP_AGENT
+          key: dune.status.raw
+          delay: '{$DUNE.UPDATE.INTERVAL}'
+          history: 7d
+          value_type: TEXT
+          description: 'Raw JSON response from Dune IP Control API status command.'
+          timeout: '{$DUNE.TIMEOUT}'
+          url: 'http://{HOST.CONN}:{$DUNE.API.PORT}/cgi-bin/do?cmd=status&result_syntax=json'
+          tags:
+            - tag: component
+              value: api
+            - tag: component
+              value: raw
+        - uuid: 9e96dbd75a9140c490889e5eedf2cc08
+          name: 'Dune: ICMP ping'
+          type: SIMPLE
+          key: icmpping
+          history: 7d
+          description: 'Checks whether the Dune media player is reachable by ICMP ping.'
+          valuemap:
+            name: 'Dune flag'
+          tags:
+            - tag: component
+              value: network
+            - tag: scope
+              value: availability
+          triggers:
+            - uuid: d61e3d26aef44027842e5991e8e98e02
+              expression: 'max(/Dune HD by HTTP/icmpping,5m)=0'
+              name: 'Dune: Device is unavailable by ICMP'
+              priority: AVERAGE
+              description: 'The Dune media player has not responded to ICMP ping for 5 minutes.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: 90db1ae47555453b83d81b803e484375
+          name: 'Dune: HTTP API availability'
+          type: SIMPLE
+          key: 'net.tcp.service[http,,{$DUNE.API.PORT}]'
+          history: 7d
+          description: 'Checks whether the Dune HTTP API port is reachable.'
+          valuemap:
+            name: 'Dune flag'
+          tags:
+            - tag: component
+              value: api
+            - tag: scope
+              value: availability
+      tags:
+        - tag: class
+          value: media_player
+        - tag: component
+          value: http_api
+        - tag: target
+          value: dune_hd
+        - tag: vendor
+          value: dune_hd
+      macros:
+        - macro: '{$DUNE.API.PORT}'
+          value: '80'
+          description: 'Dune HD IP Control HTTP API port. Regular models use 80; Google-certified ATV models use 11080.'
+        - macro: '{$DUNE.TIMEOUT}'
+          value: 5s
+          description: 'HTTP agent timeout for Dune API requests.'
+        - macro: '{$DUNE.UPDATE.INTERVAL}'
+          value: 1m
+          description: 'Update interval for the Dune status endpoint.'
+      dashboards:
+        - uuid: 7527e1bc7b7f45ac936d5b8abfac5884
+          name: 'Dune overview'
+          pages:
+            - widgets:
+                - type: item
+                  name: 'Device availability'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: icmpping
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: FF0000
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '25'
+                - type: graph
+                  name: 'Dune: Availability'
+                  'y': '3'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Availability'
+                    - type: STRING
+                      name: reference
+                      value: DAVAL
+                - type: graph
+                  name: 'Dune: Playback progress'
+                  'y': '8'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Playback progress'
+                    - type: STRING
+                      name: reference
+                      value: DPRGS
+                - type: graph
+                  name: 'Dune: Audio state'
+                  'y': '13'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Audio state'
+                    - type: STRING
+                      name: reference
+                      value: DAUDI
+                - type: itemhistory
+                  name: 'Dune information'
+                  'y': '18'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: ITEM
+                      name: columns.0.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.product_name
+                    - type: STRING
+                      name: columns.0.name
+                      value: 'Product name'
+                    - type: ITEM
+                      name: columns.1.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.product_id
+                    - type: STRING
+                      name: columns.1.name
+                      value: 'Product ID'
+                    - type: ITEM
+                      name: columns.2.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.firmware_version
+                    - type: STRING
+                      name: columns.2.name
+                      value: 'Firmware version'
+                    - type: ITEM
+                      name: columns.3.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.app_version
+                    - type: STRING
+                      name: columns.3.name
+                      value: 'App version'
+                    - type: ITEM
+                      name: columns.4.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.serial_number
+                    - type: STRING
+                      name: columns.4.name
+                      value: 'Serial number'
+                    - type: ITEM
+                      name: columns.5.itemid
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.commercial_serial_number
+                    - type: STRING
+                      name: columns.5.name
+                      value: 'Commercial serial number'
+                    - type: STRING
+                      name: reference
+                      value: DINFO
+                    - type: INTEGER
+                      name: show_column_header
+                      value: '1'
+                - type: item
+                  name: 'HTTP API'
+                  x: '12'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: 'net.tcp.service[http,,{$DUNE.API.PORT}]'
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: FF0000
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '25'
+                - type: item
+                  name: 'Android UI'
+                  x: '24'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: INTEGER
+                      name: decimal_size
+                      value: '20'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.android_ui_active
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: 00FFFF
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '20'
+                - type: item
+                  name: 'Player state'
+                  x: '36'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: INTEGER
+                      name: decimal_size
+                      value: '20'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.player_state.code
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: FF0000
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: '808080'
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: STRING
+                      name: thresholds.2.color
+                      value: 0040FF
+                    - type: STRING
+                      name: thresholds.2.threshold
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.3.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.3.threshold
+                      value: '3'
+                    - type: STRING
+                      name: thresholds.4.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.4.threshold
+                      value: '4'
+                    - type: STRING
+                      name: thresholds.5.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.5.threshold
+                      value: '5'
+                    - type: STRING
+                      name: thresholds.6.color
+                      value: '808080'
+                    - type: STRING
+                      name: thresholds.6.threshold
+                      value: '6'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '20'
+                - type: graph
+                  name: 'Dune: Player state'
+                  x: '36'
+                  'y': '3'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Player state'
+                    - type: STRING
+                      name: reference
+                      value: DSTAT
+                - type: graph
+                  name: 'Dune: Playback health'
+                  x: '36'
+                  'y': '8'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Playback health'
+                    - type: STRING
+                      name: reference
+                      value: DHLTH
+                - type: graph
+                  name: 'Dune: Playback position and duration'
+                  x: '36'
+                  'y': '13'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        name: 'Dune: Playback position and duration'
+                    - type: STRING
+                      name: reference
+                      value: DPOSD
+                - type: problems
+                  name: 'Dune problems'
+                  x: '36'
+                  'y': '18'
+                  width: '36'
+                  height: '5'
+                  fields:
+                    - type: STRING
+                      name: reference
+                      value: DPROB
+                    - type: INTEGER
+                      name: severities.0
+                      value: '1'
+                    - type: INTEGER
+                      name: severities.1
+                      value: '2'
+                    - type: INTEGER
+                      name: severities.2
+                      value: '3'
+                    - type: INTEGER
+                      name: severities.3
+                      value: '4'
+                    - type: INTEGER
+                      name: severities.4
+                      value: '5'
+                    - type: INTEGER
+                      name: show_opdata
+                      value: '2'
+                    - type: INTEGER
+                      name: show_symptoms
+                      value: '1'
+                - type: item
+                  name: Volume
+                  x: '48'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.playback_volume
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: '808080'
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '25'
+                - type: item
+                  name: Buffering
+                  x: '60'
+                  width: '12'
+                  height: '3'
+                  fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Dune HD by HTTP'
+                        key: dune.playback_is_buffering
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: 00FF00
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: FF0000
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: INTEGER
+                      name: units_bold
+                      value: '0'
+                    - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
+                      name: value_size
+                      value: '25'
+      valuemaps:
+        - uuid: 951c5a7cdc5948a3a65f4bd976fe8e86
+          name: 'Dune Android UI state'
+          mappings:
+            - value: '0'
+              newvalue: 'UI inactive'
+            - value: '1'
+              newvalue: 'UI active'
+        - uuid: b24e294bac464aecbee28f565812c7ee
+          name: 'Dune flag'
+          mappings:
+            - value: '0'
+              newvalue: 'No'
+            - value: '1'
+              newvalue: 'Yes'
+        - uuid: b43b0ea53b9c4096962213f51186e4ab
+          name: 'Dune player state'
+          mappings:
+            - value: '0'
+              newvalue: Unknown
+            - value: '1'
+              newvalue: Standby
+            - value: '2'
+              newvalue: Navigator
+            - value: '3'
+              newvalue: 'File playback'
+            - value: '4'
+              newvalue: 'DVD playback'
+            - value: '5'
+              newvalue: 'Blu-ray playback'
+            - value: '6'
+              newvalue: 'Black screen'
+  triggers:
+    - uuid: 490b4db5ade44f6c96111051828978fd
+      expression: 'nodata(/Dune HD by HTTP/dune.status.raw,5m)=1 and max(/Dune HD by HTTP/icmpping,5m)=1'
+      name: 'Dune: Failed to fetch status data'
+      priority: WARNING
+      description: 'Zabbix has not received data from the Dune status API for 5 minutes while the device is reachable by ICMP.'
+      manual_close: 'YES'
+      dependencies:
+        - name: 'Dune: Device is unavailable by ICMP'
+          expression: 'max(/Dune HD by HTTP/icmpping,5m)=0'
+        - name: 'Dune: HTTP API is unavailable'
+          expression: 'max(/Dune HD by HTTP/net.tcp.service[http,,{$DUNE.API.PORT}],5m)=0 and max(/Dune HD by HTTP/icmpping,5m)=1'
+      tags:
+        - tag: scope
+          value: availability
+    - uuid: 2bc9b7a28ff04749b3ead4bb42cbbfb6
+      expression: 'max(/Dune HD by HTTP/net.tcp.service[http,,{$DUNE.API.PORT}],5m)=0 and max(/Dune HD by HTTP/icmpping,5m)=1'
+      name: 'Dune: HTTP API is unavailable'
+      priority: WARNING
+      description: 'ICMP ping is available, but the Dune HTTP API port is not reachable.'
+      manual_close: 'YES'
+      dependencies:
+        - name: 'Dune: Device is unavailable by ICMP'
+          expression: 'max(/Dune HD by HTTP/icmpping,5m)=0'
+      tags:
+        - tag: scope
+          value: availability
+  graphs:
+    - uuid: fcf0c59352a84179a48c969a32002f52
+      name: 'Dune: Audio state'
+      ymin_type_1: FIXED
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_volume
+        - sortorder: '1'
+          color: F63100
+          yaxisside: RIGHT
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_mute
+    - uuid: 83e625509cbd4e49a074622f6ef52458
+      name: 'Dune: Availability'
+      yaxismax: '1'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: icmpping
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: 'Dune HD by HTTP'
+            key: 'net.tcp.service[http,,{$DUNE.API.PORT}]'
+    - uuid: 038658a08afb4014afba4cdb0a217342
+      name: 'Dune: Playback health'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_speed
+        - sortorder: '1'
+          color: F63100
+          yaxisside: RIGHT
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_is_buffering
+    - uuid: 2f77cb6634ae42deb26e9082af07a8bb
+      name: 'Dune: Playback position and duration'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_position
+        - sortorder: '1'
+          color: 2774A4
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_duration
+    - uuid: 14e428817e7846baa3d21c5a71ecd7a6
+      name: 'Dune: Playback progress'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.playback_progress_pct
+    - uuid: 55bd1276e14c452f853980f9d67e1a1e
+      name: 'Dune: Player state'
+      yaxismax: '6'
+      ymin_type_1: FIXED
+      ymax_type_1: FIXED
+      graph_items:
+        - drawtype: BOLD_LINE
+          color: 199C0D
+          item:
+            host: 'Dune HD by HTTP'
+            key: dune.player_state.code
