@@ -1002,6 +1002,7 @@ zabbix_export:
           type: DEPENDENT
           key: dune.subtitles_track
           history: 90d
+          value_type: FLOAT
           description: 'Current selected subtitles track index.'
           preprocessing:
             - type: JSONPATH
@@ -1256,8 +1257,14 @@ zabbix_export:
                       name: reference
                       value: DINFO
                     - type: INTEGER
+                      name: rf_rate
+                      value: '900'
+                    - type: INTEGER
                       name: show_column_header
                       value: '0'
+                    - type: INTEGER
+                      name: show_lines
+                      value: '6'
                 - type: item
                   name: 'HTTP API'
                   x: '12'
