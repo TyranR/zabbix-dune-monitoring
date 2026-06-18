@@ -131,20 +131,33 @@ zabbix_export:
                   try {
                       var data = JSON.parse(value);
                       var index = data.audio_track;
-                      if (index === undefined || index    === null || index === '') {
+                  
+                      if (index === undefined || index === null || index === '') {
                           return '';
                       }
-                      var lang = data['audio_track.' + index + '.lang']    || '';
+                  
+                      var lang = data['audio_track.' + index + '.lang'] || '';
                       var codec = data['audio_track.' + index + '.codec'] || '';
-                      var type = data['audio_track.' +   index  + '.type'] || '';
+                      var type = data['audio_track.' + index + '.type'] || '';
+                  
                       var result = [];
-                      if (lang) result.push(lang);
-                      if (codec) result.push(codec);
-                         if (type && type !== 'normal') result.push(type);
+                  
+                      if (lang) {
+                          result.push(lang);
+                      }
+                  
+                      if (codec) {
+                          result.push(codec);
+                      }
+                  
+                      if (type && type !== 'normal') {
+                          result.push(type);
+                      }
+                  
                       return result.join(' / ');
                   }
                   catch (e) {
-                      return    '';
+                      return '';
                   }
           master_item:
             key: dune.status.raw
@@ -522,7 +535,7 @@ zabbix_export:
           history: 7d
           value_type: FLOAT
           units: s
-          description: 'Current media duration in seconds. If unavailable, the item returns -1.'
+          description: 'Current media duration in seconds. If unavailable, the value is discarded.'
           preprocessing:
             - type: JSONPATH
               parameters:
@@ -622,7 +635,7 @@ zabbix_export:
           history: 7d
           value_type: FLOAT
           units: s
-          description: 'Current playback position in seconds. If unavailable, the item returns -1.'
+          description: 'Current playback position in seconds. If unavailable, the value is discarded.'
           preprocessing:
             - type: JSONPATH
               parameters:
@@ -640,7 +653,7 @@ zabbix_export:
           history: 7d
           value_type: FLOAT
           units: '%'
-          description: 'Playback progress percentage calculated from playback_position and playback_duration. If unavailable, the item returns -1.'
+          description: 'Playback progress percentage calculated from playback_position and playback_duration. If unavailable or cannot be calculated, the item returns 0.'
           preprocessing:
             - type: JAVASCRIPT
               parameters:
@@ -670,7 +683,7 @@ zabbix_export:
           key: dune.playback_speed
           history: 7d
           value_type: FLOAT
-          description: 'Current playback speed. Dune commonly uses 256 for normal playback and 0 for pause. If unavailable, the item returns -1.'
+          description: 'Current playback speed. Dune commonly uses 256 for normal playback and 0 for pause. If unavailable, the value is discarded.'
           preprocessing:
             - type: JSONPATH
               parameters:
