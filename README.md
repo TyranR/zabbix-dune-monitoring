@@ -432,6 +432,32 @@ For Google-certified ATV models, override:
 
 ---
 
+### Item grouping and Zabbix tags
+
+The item tables above are grouped for documentation readability. These groups do not always match the internal Zabbix item tags one-to-one.
+
+The template uses `component` tags for filtering, dashboarding, and problem/event context inside Zabbix.
+
+Current `component` tag values include:
+
+| Component tag | Purpose |
+|---|---|
+| `network` | ICMP/network reachability checks |
+| `api` | HTTP API availability and raw status data |
+| `inventory` | Product name, product ID, serial numbers |
+| `firmware` | Firmware version |
+| `application` | Dune application or shell/screen state |
+| `player` | High-level player state |
+| `playback` | Playback state, progress, bitrate, URL, captions, last played data |
+| `video` | Video-related playback fields |
+| `audio` | Audio volume, mute state, selected audio track metadata |
+| `subtitles` | Selected subtitle track metadata |
+| `system` | Miscellaneous system/runtime counters |
+
+For example, the README section `Media metadata` contains items that are tagged as `component=playback` in Zabbix because they are only available as part of playback status data.
+
+---
+
 ## HTTP API endpoint
 
 The main master item is:
