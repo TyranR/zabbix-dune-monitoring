@@ -359,25 +359,38 @@ zabbix_export:
                   try {
                       var data = JSON.parse(value);
                       var state = String(data.player_state || '');
-                      var playbackState   = String(data.playback_state || '');
-                      var active = state === 'file_playback' || state === 'dvd_playback'  ||  state === 'bluray_playback' ||
-                                   playbackState === 'playing' || playbackState === 'paused'  ||  playbackState === 'initializing';
+                      var playbackState = String(data.playback_state || '');
+                  
+                      var active = state === 'file_playback' ||
+                                   state === 'dvd_playback' ||
+                                   state === 'bluray_playback' ||
+                                   playbackState === 'playing' ||
+                                   playbackState === 'paused' ||
+                                   playbackState === 'initializing';
                   
                       if (!active) {
-                          throw 'No active playback';
+                          return '__DISCARD__';
                       }
                   
-                       var  d = new Date();
+                      var d = new Date();
                       function pad(n) {
                           return n < 10 ? '0' + n : '' + n;
                       }
                   
-                      return d.getFullYear()   + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
-                             pad(d.getHours()) + ':' + pad(d.getMinutes());
-                   }
-                  catch (e) {
-                      throw e;
+                      return d.getFullYear() + '-' +
+                             pad(d.getMonth() + 1) + '-' +
+                             pad(d.getDate()) + ' ' +
+                             pad(d.getHours()) + ':' +
+                             pad(d.getMinutes());
                   }
+                  catch (e) {
+                      return '__DISCARD__';
+                  }
+            - type: REGEX
+              parameters:
+                - '^(?!__DISCARD__$).+'
+                - \0
+              error_handler: DISCARD_VALUE
           master_item:
             key: dune.status.raw
           tags:
