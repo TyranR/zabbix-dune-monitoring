@@ -71,7 +71,7 @@ Version **1.1** includes advanced playback metadata, current-vs-last playback da
 - `dune.playback_speed`, `dune.playback_duration`, and `dune.playback_position` use `Discard value` when the corresponding JSON field is absent, so graphs may show gaps outside playback.
 - `dune.playback_progress_pct` returns `0%` when playback progress cannot be calculated.
 - `dune.playback_caption` is the **current now-playing** field and returns `-` outside playback.
-- `dune.last_played_title` is a separate long-history field that stores the last observed playback title.
+- `dune.last_played_title` is a separate long-history field that stores the last observed playback title and uses `Discard unchanged` to avoid repeated identical history rows during playback.
 - `dune.playback_state` returns `stopped` outside playback so the dashboard does not keep a stale `playing` value.
 - `dune.playback_current_bitrate` returns `0 bps` outside playback so the dashboard does not keep a stale bitrate value.
 - `dune.subtitles_track` may contain `-1` when Dune reports that subtitles are available but currently not selected.
@@ -512,7 +512,16 @@ dune.last_played_title
 
 Long-history field. It stores the last observed playback title and keeps it after playback stops.
 
-This avoids stale values in the `Now playing` dashboard card while still preserving the last played title.
+The preprocessing chain for this item is:
+
+1. JSONPath: $.playback_caption
+   Custom on fail: Discard value
+
+2. Discard unchanged
+
+Discard unchanged prevents Zabbix from writing the same playback title on every polling cycle while the same movie or episode is still playing. As a result, the item history contains title changes rather than repeated identical rows.
+
+This avoids stale values in the Now playing dashboard card while still preserving the last played title.
 
 ---
 
@@ -1071,6 +1080,32 @@ This item is populated only after playback has been active at least once since t
 
 ---
 
+### Last played title is not written repeatedly for the same movie
+
+This is expected.
+
+`dune.last_played_title` uses `Discard unchanged`, so Zabbix does not write the same title on every polling cycle while the same movie or episode is still playing.
+
+This keeps item history cleaner:
+
+```text
+First.Movie...
+Another.Movie...
+Third.Movie...
+```
+
+instead of:
+
+```text
+First.Movie...
+First.Movie...
+First.Movie...
+```
+
+If the same file is played again later, the title may not be written again because the value has not changed. However, dune.last_playback_ended_at will still update with the latest playback timestamp.
+
+---
+
 ### Playback state still shows playing after playback ended
 
 Check that:
@@ -1307,6 +1342,7 @@ Possible future improvements:
 - Documented the compact `Dune information` widget configuration with 6 rows and a 15-minute refresh interval.
 - Added `Dune: Playback bitrate` graph.
 - Documented privacy and storage side effects of collecting playback metadata.
+- Added `Discard unchanged` preprocessing to `dune.last_played_title` to avoid repeated identical history rows during active playback.
 
 ### 1.0
 
