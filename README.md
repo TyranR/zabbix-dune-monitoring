@@ -590,13 +590,36 @@ Key: dune.last_playback_ended_at
 
 This item is intentionally approximate.
 
-While playback is active, the item stores the current Zabbix Server/Proxy-side time in this format:
+While playback is active, JavaScript preprocessing stores the current Zabbix Server/Proxy-side time in this format:
 
 ```text
 YYYY-MM-DD HH:MM
 ```
 
-When playback stops, the item keeps the last time when playback was still observed.
+When playback is not active, the JavaScript step returns a service marker:
+
+```text
+__DISCARD__
+```
+
+A following Regular expression preprocessing step discards this marker using `Custom on fail: Discard value`.
+
+This prevents the item from becoming unsupported outside playback and keeps the last valid playback timestamp.
+
+The preprocessing chain is:
+
+```text
+1. JavaScript
+2. Regular expression + Custom on fail: Discard value
+```
+
+Regular expression step:
+
+```text
+Pattern: ^(?!__DISCARD__$).+
+Output: \0
+Custom on fail: Discard value
+```
 
 With the default update interval:
 
@@ -1087,6 +1110,47 @@ Then set `TZ` to your desired timezone and restart the relevant container.
 
 ---
 
+### Last playback ended at shows a preprocessing error
+
+Check that `dune.last_playback_ended_at` uses two preprocessing steps:
+
+```text
+1. JavaScript
+2. Regular expression with Custom on fail: Discard value
+```
+
+The JavaScript step must not throw an error when playback is inactive. It should return a service marker instead:
+
+```text
+__DISCARD__
+```
+
+The Regular expression step should discard this marker.
+
+Expected Regular expression step:
+
+```text
+Pattern: ^(?!__DISCARD__$).+
+Output: \0
+Custom on fail: Discard value
+```
+
+This prevents errors such as:
+
+```text
+Preprocessing failed: No active playback
+```
+
+If this error appears, the item probably still uses an older JavaScript version with:
+
+```text
+throw 'No active playback'
+```
+
+Replace that logic with the `__DISCARD__` marker approach.
+
+---
+
 ### Screensaver shows inactive during playback
 
 This is expected. The value may switch to `0` while native playback is active.
@@ -1157,6 +1221,7 @@ Possible future improvements:
 - Added playback caption and extra caption.
 - Added playback URL with long history for private use.
 - Added approximate last playback seen/ended timestamp.
+- Fixed `dune.last_playback_ended_at` preprocessing outside active playback by replacing JavaScript errors with a `__DISCARD__` marker and a Regular expression discard step.
 - Added current-vs-last dashboard behaviour:
   - `Now playing` clears to `-` outside playback.
   - `Playback state` clears to `stopped` outside playback.
