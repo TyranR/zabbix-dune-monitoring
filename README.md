@@ -704,7 +704,7 @@ Possible future improvements:
 
 ![GitHub stars](https://img.shields.io/github/stars/TyranR/zabbix-dune-monitoring?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/TyranR/zabbix-dune-monitoring?style=social)
-![GitHub issues](https://img.shields.io/github/issues/TyranR/zabbix-hd-monitoring)
+![GitHub issues](https://img.shields.io/github/issues/TyranR/zabbix-dune-monitoring)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/TyranR/zabbix-dune-monitoring)
 
 ---
